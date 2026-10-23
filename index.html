@@ -45,7 +45,7 @@ button{font-family:inherit}
 .btn:focus-visible,.cell:focus-visible,.icon:focus-visible{outline:3px solid var(--b);outline-offset:2px}
 
 /* ---------- Game screen ---------- */
-.game{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:12px;max-width:460px;margin:0 auto}
+.game{height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:12px;max-width:760px;margin:0 auto}
 .panel{position:relative;background:var(--surface);border-radius:16px;padding:12px 14px 18px;display:flex;align-items:center;gap:12px;overflow:hidden;transition:background .3s}
 .panel.top{transform:rotate(180deg)}
 .panel .sym{flex:none;width:48px;height:48px;border-radius:12px;display:grid;place-items:center;font:800 2rem/1 var(--display);transition:transform .3s}
@@ -57,16 +57,32 @@ button{font-family:inherit}
 .panel .wins small{display:block;font:600 .65rem var(--body);color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:3px}
 .panel .bar{position:absolute;left:0;right:0;bottom:0;height:7px;transform:scaleX(0);transform-origin:center;transition:transform .35s cubic-bezier(.2,.8,.2,1)}
 .panelA .bar{background:var(--a)} .panelB .bar{background:var(--b)}
-.panel.on .bar{transform:scaleX(1)}
-.panel.on .sym{transform:scale(1.08)}
-.panelA.on{background:color-mix(in srgb,var(--a-soft) 70%,var(--surface))}
-.panelB.on{background:color-mix(in srgb,var(--b-soft) 70%,var(--surface))}
-.panel.on .msg{color:var(--fg);font-weight:600}
+.panel.on .bar{transform:scaleX(1);height:10px;background:#fff;opacity:.85}
+.panel.on .sym{transform:scale(1.08);background:rgba(255,255,255,.22);color:#fff}
+.panel{transition:background .3s,opacity .3s,transform .3s,box-shadow .3s}
+.panel:not(.on){opacity:.5}
+.panelA.on{background:var(--a);color:#fff;animation:glowA 1.2s ease-in-out infinite alternate}
+.panelB.on{background:var(--b);color:#fff;animation:glowB 1.2s ease-in-out infinite alternate}
+.panel.on .msg{color:#fff;font-weight:600}
+.panel.on .wins small{color:rgba(255,255,255,.85)}
+.panel .turnTag{display:none;flex:none;font:800 .75rem var(--body);letter-spacing:.1em;text-transform:uppercase;background:#fff;border-radius:999px;padding:5px 10px;animation:nudge .8s ease-in-out infinite alternate}
+.panelA .turnTag{color:var(--a)} .panelB .turnTag{color:var(--b)}
+.panel.on .turnTag{display:block}
+.boardWrap.turnA .board{box-shadow:0 0 0 4px var(--a),0 0 30px color-mix(in srgb,var(--a) 45%,transparent)}
+.boardWrap.turnB .board{box-shadow:0 0 0 4px var(--b),0 0 30px color-mix(in srgb,var(--b) 45%,transparent)}
+.board{transition:box-shadow .35s}
+@media (min-width:700px){
+  .panel{padding:16px 20px 22px;gap:16px}
+  .panel .sym{width:64px;height:64px;font-size:2.6rem}
+  .panel .name{font-size:1.5rem} .panel .msg{font-size:1.1rem} .panel .wins{font-size:2.4rem}
+  .panel .turnTag{font-size:.95rem;padding:7px 14px}
+  .icon{width:48px;height:48px;font-size:1.3rem}
+}
 .panel.winner .sym{animation:bounce .6s ease infinite alternate}
 
 .mid{display:grid;place-items:center;min-height:0;position:relative}
-.boardWrap{--bs:min(88vw,calc(100vh - 290px),420px);width:var(--bs);height:var(--bs);position:relative}
-.board{width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;background:var(--line);padding:8px;border-radius:18px;box-sizing:border-box}
+.boardWrap{--bs:min(86vw,calc(100vh - 300px),720px);--bs:min(86vw,calc(100dvh - 300px),720px);width:var(--bs);height:var(--bs);position:relative}
+.board{touch-action:none;width:100%;height:100%;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:8px;background:var(--line);padding:8px;border-radius:18px;box-sizing:border-box}
 .cell{min-width:0;min-height:0;overflow:hidden;background:var(--surface);border:0;border-radius:12px;padding:0;cursor:pointer;display:grid;place-items:center;position:relative;transition:background .2s}
 .cell .p{font:800 calc(var(--bs)/5)/1 var(--display);display:block;pointer-events:none}
 .cell.A .p{color:var(--a)} .cell.B .p{color:var(--b)}
@@ -78,6 +94,13 @@ button{font-family:inherit}
 .cell.sel.A{color:var(--a)} .cell.sel.B{color:var(--b)}
 .cell.target::after{content:"";width:20%;height:20%;border-radius:50%;background:var(--line);animation:pulse 1s ease infinite alternate}
 .cell.dim .p{opacity:.35;transition:opacity .4s}
+.cell.dragging .p{opacity:.2;animation:none}
+.cell.overA{box-shadow:inset 0 0 0 4px var(--a);background:var(--a-soft)}
+.cell.overB{box-shadow:inset 0 0 0 4px var(--b);background:var(--b-soft)}
+.ghost{position:fixed;left:0;top:0;z-index:6;pointer-events:none;font-family:var(--display);font-weight:800;line-height:1;transform:translate(-50%,-50%) scale(1.2);filter:drop-shadow(0 8px 14px rgba(0,0,0,.35))}
+@keyframes glowA{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--a) 0%,transparent)}to{box-shadow:0 0 22px 4px color-mix(in srgb,var(--a) 60%,transparent)}}
+@keyframes glowB{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--b) 0%,transparent)}to{box-shadow:0 0 22px 4px color-mix(in srgb,var(--b) 60%,transparent)}}
+@keyframes nudge{to{transform:scale(1.08)}}
 .cell.win .p{animation:winPop .6s cubic-bezier(.3,1.6,.5,1) both}
 .cell.win .p:nth-child(1){animation-delay:.45s}
 
@@ -130,6 +153,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <div class="panel top panelB" id="panelB">
     <div class="sym" id="symB">O</div>
     <div class="info"><span class="name">Player B</span><span class="msg" id="msgB"></span></div>
+    <span class="turnTag">Your turn</span>
     <div class="wins"><span id="winsB">0</span><small>Wins</small></div>
     <div class="bar"></div>
   </div>
@@ -151,6 +175,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   <div class="panel panelA" id="panelA">
     <div class="sym" id="symA">X</div>
     <div class="info"><span class="name">Player A</span><span class="msg" id="msgA"></span></div>
+    <span class="turnTag">Your turn</span>
     <div class="wins"><span id="winsA">0</span><small>Wins</small></div>
     <div class="bar"></div>
   </div>
@@ -224,7 +249,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
 
   function tap(i){
-    if(over) return;
+    if(over || Date.now()<suppressUntil) return;
     if(placed[turn]<3){
       if(board[i]){ sfx.nope(); return; }
       board[i]=turn; placed[turn]++; setPiece(i,turn,'in'); sfx.place(turn); endTurn(); return;
@@ -270,8 +295,11 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       if(i===selected) c.classList.add('sel');
       if(!over && moving && selected!==null && !p) c.classList.add('target');
     });
+    $('boardWrap').classList.toggle('turnA',turn==='A');
+    $('boardWrap').classList.toggle('turnB',turn==='B');
     ['A','B'].forEach(k=>{
       const other=k==='A'?'B':'A';
+      $('panel'+k).querySelector('.turnTag').textContent=over?'Winner':'Your turn';
       $('sym'+k).textContent=sym[k];
       $('wins'+k).textContent=wins[k];
       $('panel'+k).classList.toggle('on',k===turn);
@@ -279,11 +307,58 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       if(over) m = k===turn ? 'You win! 🎉' : 'Player '+other+' wins this round';
       else if(k!==turn) m = 'Wait — Player '+other+"'s turn";
       else if(placed[k]<3) m = 'Your turn · place '+sym[k]+' ('+(3-placed[k])+' left)';
-      else if(selected===null) m = 'Your turn · tap your '+sym[k]+' to move';
+      else if(selected===null) m = 'Drag or tap your '+sym[k]+' to move it';
       else m = 'Tap an empty box';
       $('msg'+k).textContent=m;
     });
   }
+
+  /* ---- drag and drop (move phase) ---- */
+  let drag=null, suppressUntil=0;
+  function clearDrag(){
+    if(!drag) return;
+    if(drag.ghost) drag.ghost.remove();
+    cells.forEach(c=>c.classList.remove('dragging','overA','overB'));
+  }
+  $('board').addEventListener('pointerdown',e=>{
+    const c=e.target.closest('.cell'); if(!c||over) return;
+    const i=cells.indexOf(c);
+    if(placed[turn]<3||board[i]!==turn) return;
+    drag={i,x:e.clientX,y:e.clientY,active:false,ghost:null,over:-1};
+  });
+  window.addEventListener('pointermove',e=>{
+    if(!drag) return;
+    if(!drag.active){
+      if(Math.hypot(e.clientX-drag.x,e.clientY-drag.y)<8) return;
+      drag.active=true; selected=null; render();
+      const g=document.createElement('div'); g.className='ghost'; g.textContent=sym[turn];
+      g.style.color=turn==='A'?'var(--a)':'var(--b)';
+      g.style.fontSize=(cells[0].getBoundingClientRect().height*0.75)+'px';
+      document.body.appendChild(g); drag.ghost=g;
+      cells[drag.i].classList.add('dragging'); sfx.select();
+    }
+    e.preventDefault();
+    drag.ghost.style.left=e.clientX+'px'; drag.ghost.style.top=e.clientY+'px';
+    const el=document.elementFromPoint(e.clientX,e.clientY), c=el&&el.closest('.cell');
+    const t=c?cells.indexOf(c):-1, ok=t>=0&&!board[t];
+    if(t!==drag.over){
+      cells.forEach(x=>x.classList.remove('overA','overB'));
+      if(ok) cells[t].classList.add('over'+turn);
+      drag.over=ok?t:-1;
+    }
+  },{passive:false});
+  function endDrag(e,cancel){
+    if(!drag) return;
+    const d=drag; clearDrag(); drag=null;
+    if(!d.active) return;
+    suppressUntil=Date.now()+400;
+    if(!cancel && d.over>=0 && !over){
+      board[d.i]=null; board[d.over]=turn; selected=null;
+      setPiece(d.i,null); setPiece(d.over,turn,'in'); sfx.move(); endTurn();
+    } else { sfx.nope(); render(); }
+  }
+  window.addEventListener('pointerup',e=>endDrag(e,false));
+  window.addEventListener('pointercancel',e=>endDrag(e,true));
 
   /* ---- confetti ---- */
   const cv=$('fx'), ctx=cv.getContext('2d'); let parts=[], raf=null;
