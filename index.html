@@ -42,6 +42,16 @@ button{font-family:inherit}
 .btn{font:600 1.05rem var(--body);padding:14px 24px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;transition:transform .15s}
 .btn:active{transform:scale(.96)}
 .btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg);width:100%;font-size:1.15rem}
+.modes{display:flex;flex-direction:column;gap:12px;width:100%}
+.cpuBox{display:flex;flex-direction:column;gap:8px;background:var(--surface);border-radius:16px;padding:8px}
+.cpuBtn{background:var(--b)!important;border-color:var(--b)!important;color:#fff!important}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.lvl{font:600 .9rem var(--body);padding:9px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
+.lvl.on{border-color:var(--b);color:var(--b);background:var(--b-soft)}
+.lvl:focus-visible{outline:3px solid var(--b);outline-offset:2px}
+.game.cpu .panel.top{transform:none}
+.panel.thinking .msg{animation:blink .7s ease-in-out infinite alternate}
+@keyframes blink{to{opacity:.45}}
 .btn:focus-visible,.cell:focus-visible,.icon:focus-visible{outline:3px solid var(--b);outline-offset:2px}
 
 /* ---------- Game screen ---------- */
@@ -146,14 +156,24 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <li><b>3</b>Then tap your piece and move it to an empty box.</li>
     <li><b>4</b>Keep playing until someone gets three in a row.</li>
   </ul>
-  <button class="btn primary" id="startBtn">Start game</button>
+  <div class="modes">
+    <button class="btn primary" id="startBtn">2 Players</button>
+    <div class="cpuBox">
+      <button class="btn primary cpuBtn" id="cpuBtn">Play vs Computer</button>
+      <div class="levels" role="radiogroup" aria-label="Computer level">
+        <button class="lvl" data-lvl="easy" role="radio">Easy</button>
+        <button class="lvl on" data-lvl="medium" role="radio">Medium</button>
+        <button class="lvl" data-lvl="hard" role="radio">Hard</button>
+      </div>
+    </div>
+  </div>
 </section>
 
 <!-- Game screen -->
 <section class="game" id="game" hidden>
   <div class="panel top panelB" id="panelB">
     <div class="sym" id="symB">O</div>
-    <div class="info"><span class="name">Player B</span><span class="msg" id="msgB"></span></div>
+    <div class="info"><span class="name" id="nameB">Player B</span><span class="msg" id="msgB"></span></div>
     <span class="turnTag">Your turn</span>
     <div class="wins"><span id="winsB">0</span><small>Wins</small></div>
     <div class="bar"></div>
@@ -175,7 +195,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 
   <div class="panel panelA" id="panelA">
     <div class="sym" id="symA">X</div>
-    <div class="info"><span class="name">Player A</span><span class="msg" id="msgA"></span></div>
+    <div class="info"><span class="name" id="nameA">Player A</span><span class="msg" id="msgA"></span></div>
     <span class="turnTag">Your turn</span>
     <div class="wins"><span id="winsA">0</span><small>Wins</small></div>
     <div class="bar"></div>
@@ -223,7 +243,18 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 
   function show(screen){ $('start').hidden=screen!=='start'; $('game').hidden=screen!=='game'; }
 
+  /* ---- mode: '2p' or 'cpu' (computer is Player B) ---- */
+  let mode='2p', level='medium', botTimer=null;
+  const isBot=k=>mode==='cpu'&&k==='B';
+  const nm=k=>mode==='cpu'?(k==='A'?'You':'Computer'):'Player '+k;
+  function setMode(m){
+    mode=m; wins={A:0,B:0};
+    $('game').classList.toggle('cpu',m==='cpu');
+    $('nameA').textContent=nm('A'); $('nameB').textContent=nm('B');
+  }
+
   function newRound(){
+    clearTimeout(botTimer);
     board=Array(9).fill(null); placed={A:0,B:0}; selected=null; over=false;
     const aIsX=Math.random()<.5;
     sym=aIsX?{A:'X',B:'O'}:{A:'O',B:'X'};
@@ -233,6 +264,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     ['A','B'].forEach(k=>$('panel'+k).classList.remove('winner'));
     stopFx();
     render();
+    if(isBot(turn)) queueBot();
   }
 
   function setPiece(i,p,anim,from){
@@ -250,7 +282,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
 
   function tap(i){
-    if(over || Date.now()<suppressUntil) return;
+    if(over || Date.now()<suppressUntil || isBot(turn)) return;
     if(placed[turn]<3){
       if(board[i]){ sfx.nope(); return; }
       board[i]=turn; placed[turn]++; setPiece(i,turn,'in'); sfx.place(turn); endTurn(); return;
@@ -268,6 +300,63 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     if(line){ over=true; wins[turn]++; render(); win(line); return; }
     turn=turn==='A'?'B':'A';
     render();
+    if(isBot(turn)) queueBot();
+  }
+
+  /* ---- computer player ---- */
+  function queueBot(){ clearTimeout(botTimer); botTimer=setTimeout(botMove,650+Math.random()*450); }
+  function botMove(){
+    if(over||!isBot(turn)) return;
+    const mv=chooseMove();
+    if(mv.from<0){ board[mv.to]=turn; placed[turn]++; setPiece(mv.to,turn,'in'); sfx.place(turn); }
+    else { board[mv.from]=null; board[mv.to]=turn; setPiece(mv.from,null); setPiece(mv.to,turn,'slide',mv.from); sfx.move(); }
+    endTurn();
+  }
+  function movesFor(b,p,pl){
+    const empty=[],own=[]; b.forEach((v,i)=>{ if(!v) empty.push(i); else if(v===p) own.push(i); });
+    if(pl[p]<3) return empty.map(to=>({from:-1,to}));
+    const out=[]; own.forEach(f=>empty.forEach(to=>out.push({from:f,to}))); return out;
+  }
+  function apply(b,pl,p,m){ const nb=b.slice(), np={...pl}; if(m.from<0) np[p]++; else nb[m.from]=null; nb[m.to]=p; return [nb,np]; }
+  const won=(b,p)=>LINES.some(l=>l.every(k=>b[k]===p));
+  function heur(b,me){
+    // lines with 2 of mine and an empty box, minus the same for the opponent
+    const op=me==='A'?'B':'A'; let s=0;
+    LINES.forEach(l=>{ const v=l.map(k=>b[k]); const m=v.filter(x=>x===me).length,o=v.filter(x=>x===op).length,e=v.filter(x=>!x).length;
+      if(m===2&&e===1) s+=3; if(o===2&&e===1) s-=3; if(m===1&&e===2) s+=1; if(o===1&&e===2) s-=1; });
+    if(b[4]===me) s+=1; else if(b[4]===op) s-=1;
+    return s;
+  }
+  function search(b,pl,p,me,depth,alpha,beta,ply){
+    const op=p==='A'?'B':'A';
+    if(won(b,op)) return op===me ? 1000-ply : -1000+ply;
+    if(depth===0) return heur(b,me);
+    const ms=movesFor(b,p,pl);
+    if(p===me){ let best=-Infinity;
+      for(const m of ms){ const [nb,np]=apply(b,pl,p,m); best=Math.max(best,search(nb,np,op,me,depth-1,alpha,beta,ply+1)); alpha=Math.max(alpha,best); if(alpha>=beta) break; }
+      return best; }
+    let best=Infinity;
+    for(const m of ms){ const [nb,np]=apply(b,pl,p,m); best=Math.min(best,search(nb,np,op,me,depth-1,alpha,beta,ply+1)); beta=Math.min(beta,best); if(alpha>=beta) break; }
+    return best;
+  }
+  function chooseMove(){
+    const me=turn, op=me==='A'?'B':'A', ms=movesFor(board,me,placed);
+    const rnd=a=>a[Math.floor(Math.random()*a.length)];
+    const winning=ms.filter(m=>won(apply(board,placed,me,m)[0],me));
+    if(level==='easy'){
+      if(winning.length&&Math.random()<.5) return winning[0];
+      return rnd(ms);
+    }
+    if(winning.length) return winning[0];
+    if(level==='medium'&&Math.random()<.3) return rnd(ms);
+    const depth=level==='hard'?7:3;
+    let best=-Infinity, picks=[];
+    for(const m of ms){
+      const [nb,np]=apply(board,placed,me,m);
+      const s=search(nb,np,op,me,depth-1,-Infinity,Infinity,1);
+      if(s>best){best=s;picks=[m];} else if(s===best) picks.push(m);
+    }
+    return rnd(picks);
   }
 
   function win(line){
@@ -279,7 +368,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     $('line').innerHTML=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" style="stroke:${col}"/>`;
     cells.forEach((c,i)=>{ if(line.includes(i)) c.classList.add('win'); else if(board[i]) c.classList.add('dim'); });
     $('panel'+turn).classList.add('winner');
-    $('resultText').textContent='Player '+turn+' wins!';
+    $('resultText').textContent=nm(turn)+(nm(turn)==='You'?' win!':' wins!');
     $('resultText').style.color=col;
     $('result').style.setProperty('--win',col);
     $('result').hidden=false;
@@ -301,13 +390,16 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     $('boardWrap').classList.toggle('turnB',turn==='B');
     ['A','B'].forEach(k=>{
       const other=k==='A'?'B':'A';
-      $('panel'+k).querySelector('.turnTag').textContent=over?'Winner':'Your turn';
+      const bot=isBot(k), thinking=!over&&bot&&k===turn;
+      $('panel'+k).querySelector('.turnTag').textContent=over?'Winner':(bot?'Playing':'Your turn');
       $('sym'+k).textContent=sym[k];
       $('wins'+k).textContent=wins[k];
       $('panel'+k).classList.toggle('on',k===turn);
+      $('panel'+k).classList.toggle('thinking',thinking);
       let m;
-      if(over) m = k===turn ? 'You win! 🎉' : 'Player '+other+' wins this round';
-      else if(k!==turn) m = 'Wait — Player '+other+"'s turn";
+      if(over) m = k===turn ? (bot?'Computer wins this round':'You win! 🎉') : nm(other)+(nm(other)==='You'?' win':' wins')+' this round';
+      else if(thinking) m = 'Thinking…';
+      else if(k!==turn) m = 'Wait for '+(isBot(other)?'the computer':nm(other));
       else if(placed[k]<3) m = 'Your turn · place '+sym[k]+' ('+(3-placed[k])+' left)';
       else if(selected===null) m = 'Drag or tap your '+sym[k]+' to move it';
       else m = 'Tap an empty box';
@@ -325,7 +417,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   $('board').addEventListener('pointerdown',e=>{
     const c=e.target.closest('.cell'); if(!c||over) return;
     const i=cells.indexOf(c);
-    if(placed[turn]<3||board[i]!==turn) return;
+    if(isBot(turn)||placed[turn]<3||board[i]!==turn) return;
     drag={i,x:e.clientX,y:e.clientY,active:false,ghost:null,over:-1};
   });
   window.addEventListener('pointermove',e=>{
@@ -388,8 +480,13 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
   function stopFx(){cancelAnimationFrame(raf);parts=[];ctx.clearRect(0,0,cv.width,cv.height);}
 
-  $('startBtn').onclick=()=>{ac();sfx.start();show('game');newRound();};
-  $('homeBtn').onclick=()=>{sfx.click();stopFx();show('start');};
+  $('startBtn').onclick=()=>{ac();sfx.start();setMode('2p');show('game');newRound();};
+  $('cpuBtn').onclick=()=>{ac();sfx.start();setMode('cpu');show('game');newRound();};
+  document.querySelectorAll('.lvl').forEach(b=>b.onclick=()=>{
+    level=b.dataset.lvl; sfx.click();
+    document.querySelectorAll('.lvl').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});
+  });
+  $('homeBtn').onclick=()=>{sfx.click();clearTimeout(botTimer);over=true;stopFx();show('start');};
   $('againBtn').onclick=()=>{sfx.start();newRound();};
   $('resetBtn').onclick=()=>{sfx.click();wins={A:0,B:0};newRound();};
   $('muteBtn').onclick=()=>{ muted=!muted; try{localStorage.setItem('ttt-muted',muted?'1':'0');}catch(e){} setMuteIcon(); sfx.click(); };
