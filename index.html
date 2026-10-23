@@ -78,6 +78,7 @@ svg.line{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;ov
 svg.line line{stroke-width:9;stroke-linecap:round;stroke-dasharray:400;stroke-dashoffset:400;animation:draw .5s .1s ease-out forwards}
 
 .icon{position:absolute;left:0;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:1rem;z-index:3}
+.icon.right{left:auto;right:0}
 .result{position:absolute;inset:0;display:grid;place-items:center;z-index:4;pointer-events:none}
 .result .card{pointer-events:auto;background:var(--surface);border-radius:18px;padding:16px 18px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px;align-items:center;animation:rise .45s 1s cubic-bezier(.3,1.4,.5,1) both}
 .result .card div{font:800 1.3rem var(--display)}
@@ -126,6 +127,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 
   <div class="mid">
     <button class="icon" id="homeBtn" aria-label="Back to start">⌂</button>
+    <button class="icon right" id="muteBtn" aria-label="Sound on">🔊</button>
     <div class="boardWrap" id="boardWrap">
       <div class="board" id="board"></div>
       <svg class="line" id="line" viewBox="0 0 300 300" preserveAspectRatio="none"></svg>
@@ -151,6 +153,31 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   const $=id=>document.getElementById(id);
   const LINES=[[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
   let board, sym, turn, placed, selected, over, wins={A:0,B:0};
+
+  /* ---- sound effects (synthesized, no files) ---- */
+  let actx=null, muted=false;
+  try{ muted=localStorage.getItem('ttt-muted')==='1'; }catch(e){}
+  function ac(){ if(!actx){ const C=window.AudioContext||window.webkitAudioContext; if(C) actx=new C(); } if(actx&&actx.state==='suspended') actx.resume(); return actx; }
+  function tone(freq,dur,{type='sine',vol=.25,delay=0,slide=0}={}){
+    const a=ac(); if(!a||muted) return;
+    const t=a.currentTime+delay, o=a.createOscillator(), g=a.createGain();
+    o.type=type; o.frequency.setValueAtTime(freq,t);
+    if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),t+dur);
+    g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(vol,t+.01); g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.connect(g).connect(a.destination); o.start(t); o.stop(t+dur+.02);
+  }
+  const sfx={
+    start(){ [523,659,784].forEach((f,i)=>tone(f,.18,{type:'triangle',delay:i*.09})); },
+    place(p){ tone(p==='A'?620:440,.14,{type:'triangle',slide:p==='A'?260:180,vol:.3}); },
+    select(){ tone(880,.07,{type:'square',vol:.08}); },
+    deselect(){ tone(500,.07,{type:'square',vol:.07}); },
+    move(){ tone(300,.22,{type:'sawtooth',slide:500,vol:.08}); tone(700,.1,{type:'triangle',delay:.18,vol:.2}); },
+    nope(){ tone(160,.12,{type:'square',vol:.07}); },
+    win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.25,{type:'triangle',delay:.1+i*.12,vol:.25}));
+           tone(1047,.6,{type:'sine',delay:.6,vol:.2}); tone(1319,.6,{type:'sine',delay:.6,vol:.15}); },
+    click(){ tone(700,.05,{type:'triangle',vol:.12}); }
+  };
+  function setMuteIcon(){ $('muteBtn').textContent=muted?'🔇':'🔊'; $('muteBtn').setAttribute('aria-label',muted?'Sound off':'Sound on'); }
 
   const cells=[];
   for(let i=0;i<9;i++){
@@ -190,15 +217,15 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   function tap(i){
     if(over) return;
     if(placed[turn]<3){
-      if(board[i]) return;
-      board[i]=turn; placed[turn]++; setPiece(i,turn,'in'); endTurn(); return;
+      if(board[i]){ sfx.nope(); return; }
+      board[i]=turn; placed[turn]++; setPiece(i,turn,'in'); sfx.place(turn); endTurn(); return;
     }
-    if(board[i]===turn){ selected=(selected===i)?null:i; render(); return; }
+    if(board[i]===turn){ selected=(selected===i)?null:i; selected===null?sfx.deselect():sfx.select(); render(); return; }
     if(selected!==null && !board[i]){
       const from=selected;
       board[from]=null; board[i]=turn; selected=null;
-      setPiece(from,null); setPiece(i,turn,'slide',from); endTurn();
-    }
+      setPiece(from,null); setPiece(i,turn,'slide',from); sfx.move(); endTurn();
+    } else sfx.nope();
   }
 
   function endTurn(){
@@ -220,6 +247,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     $('resultText').textContent='Player '+turn+' wins!';
     $('resultText').style.color=col;
     $('result').hidden=false;
+    sfx.win();
     setTimeout(()=>confetti(turn),450);
   }
 
@@ -274,9 +302,11 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
   function stopFx(){cancelAnimationFrame(raf);parts=[];ctx.clearRect(0,0,cv.width,cv.height);}
 
-  $('startBtn').onclick=()=>{show('game');newRound();};
-  $('homeBtn').onclick=()=>{stopFx();show('start');};
-  $('againBtn').onclick=newRound;
-  $('resetBtn').onclick=()=>{wins={A:0,B:0};newRound();};
+  $('startBtn').onclick=()=>{ac();sfx.start();show('game');newRound();};
+  $('homeBtn').onclick=()=>{sfx.click();stopFx();show('start');};
+  $('againBtn').onclick=()=>{sfx.start();newRound();};
+  $('resetBtn').onclick=()=>{sfx.click();wins={A:0,B:0};newRound();};
+  $('muteBtn').onclick=()=>{ muted=!muted; try{localStorage.setItem('ttt-muted',muted?'1':'0');}catch(e){} setMuteIcon(); sfx.click(); };
+  setMuteIcon();
 })();
 </script>
