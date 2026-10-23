@@ -1,3 +1,8 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Three-Piece Tic Tac Toe</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,800&family=DM+Sans:wght@400;600&display=swap">
@@ -15,7 +20,9 @@
 :root[data-theme="dark"]{
   --bg:#12171d; --surface:#1b222b; --fg:#e8edf2; --muted:#93a1b0; --line:#2f3a46;
   --a:#ff7a52; --a-soft:#3a2219; --b:#4fb8cc; --b-soft:#16323a; color-scheme:dark}
-html,body{height:100%}
+[hidden]{display:none!important}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%;margin:0}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidden;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
 button{font-family:inherit}
@@ -96,6 +103,8 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 @keyframes rise{from{opacity:0;transform:translateY(20px) scale(.9)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
 </style>
+</head>
+<body>
 
 <!-- Start screen -->
 <section class="start" id="start">
@@ -310,3 +319,5 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   setMuteIcon();
 })();
 </script>
+</body>
+</html>
