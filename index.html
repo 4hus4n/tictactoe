@@ -109,7 +109,8 @@ svg.line line{stroke-width:9;stroke-linecap:round;stroke-dasharray:400;stroke-da
 
 .icon{position:absolute;left:0;top:50%;transform:translateY(-50%);width:36px;height:36px;border-radius:50%;border:2px solid var(--line);background:var(--surface);color:var(--muted);cursor:pointer;display:grid;place-items:center;font-size:1rem;z-index:3}
 .icon.right{left:auto;right:0}
-.result{position:absolute;inset:0;display:grid;place-items:center;z-index:4;pointer-events:none}
+.result{position:fixed;inset:0;display:grid;place-items:center;z-index:4;background:color-mix(in srgb,var(--bg) 35%,transparent);-webkit-backdrop-filter:blur(5px);backdrop-filter:blur(5px);animation:fadeIn .4s .9s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .result .card{pointer-events:auto;background:var(--surface);border-radius:18px;padding:16px 18px;box-shadow:0 12px 40px rgba(0,0,0,.25);display:flex;flex-direction:column;gap:10px;align-items:center;animation:rise .45s 1s cubic-bezier(.3,1.4,.5,1) both}
 .result .card div{font:800 1.3rem var(--display)}
 .result .row{display:flex;gap:8px}
