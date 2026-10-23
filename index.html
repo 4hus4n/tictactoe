@@ -111,6 +111,12 @@ button{font-family:inherit}
 @keyframes glowA{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--a) 0%,transparent)}to{box-shadow:0 0 22px 4px color-mix(in srgb,var(--a) 60%,transparent)}}
 @keyframes glowB{from{box-shadow:0 0 0 0 color-mix(in srgb,var(--b) 0%,transparent)}to{box-shadow:0 0 22px 4px color-mix(in srgb,var(--b) 60%,transparent)}}
 @keyframes nudge{to{transform:scale(1.08)}}
+.panel.on.timed .bar{animation:timebar 3s linear forwards}
+.panel.hurry .bar{background:#ffd23f;opacity:1}
+.panel.hurry .turnTag{background:#ffd23f;color:#1b2430!important;animation:nudge .25s ease-in-out infinite alternate}
+.panel.timeup{animation:shake .4s ease}
+@keyframes timebar{from{transform:scaleX(1)}to{transform:scaleX(0)}}
+@keyframes shake{20%,60%{translate:-8px 0}40%,80%{translate:8px 0}}
 .cell.win .p{animation:winPop .6s cubic-bezier(.3,1.6,.5,1) both}
 .cell.win .p:nth-child(1){animation-delay:.45s}
 
@@ -154,7 +160,8 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     <li><b>1</b>X or O is picked at random. X goes first.</li>
     <li><b>2</b>Each player places only 3 pieces.</li>
     <li><b>3</b>Then tap your piece and move it to an empty box.</li>
-    <li><b>4</b>Keep playing until someone gets three in a row.</li>
+    <li><b>4</b>You have 3 seconds per turn, or your turn is skipped.</li>
+    <li><b>5</b>Keep playing until someone gets three in a row.</li>
   </ul>
   <div class="modes">
     <button class="btn primary" id="startBtn">2 Players</button>
@@ -230,7 +237,9 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     nope(){ tone(160,.12,{type:'square',vol:.07}); },
     win(){ [523,659,784,1047].forEach((f,i)=>tone(f,.25,{type:'triangle',delay:.1+i*.12,vol:.25}));
            tone(1047,.6,{type:'sine',delay:.6,vol:.2}); tone(1319,.6,{type:'sine',delay:.6,vol:.15}); },
-    click(){ tone(700,.05,{type:'triangle',vol:.12}); }
+    click(){ tone(700,.05,{type:'triangle',vol:.12}); },
+    tick(s){ tone(s===1?1100:900,.06,{type:'sine',vol:.12}); },
+    timeup(){ tone(330,.18,{type:'square',vol:.1}); tone(220,.3,{type:'square',delay:.15,vol:.1}); }
   };
   function setMuteIcon(){ $('muteBtn').textContent=muted?'🔇':'🔊'; $('muteBtn').setAttribute('aria-label',muted?'Sound off':'Sound on'); }
 
@@ -254,7 +263,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
 
   function newRound(){
-    clearTimeout(botTimer);
+    clearTimeout(botTimer); stopTimer(); skipped=null;
     board=Array(9).fill(null); placed={A:0,B:0}; selected=null; over=false;
     const aIsX=Math.random()<.5;
     sym=aIsX?{A:'X',B:'O'}:{A:'O',B:'X'};
@@ -264,7 +273,43 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     ['A','B'].forEach(k=>$('panel'+k).classList.remove('winner'));
     stopFx();
     render();
-    if(isBot(turn)) queueBot();
+    if(isBot(turn)) queueBot(); else startTimer();
+  }
+
+  /* ---- 3-second turn timer (human turns only) ---- */
+  const TURN_MS=3000;
+  let turnTimeout=null, tickInt=null, secsLeft=0, timedPanel=null, skipped=null;
+  function stopTimer(){
+    clearTimeout(turnTimeout); clearInterval(tickInt); secsLeft=0;
+    if(timedPanel) timedPanel.classList.remove('timed','hurry');
+    timedPanel=null;
+  }
+  function startTimer(){
+    stopTimer();
+    if(over||isBot(turn)) return;
+    const p=$('panel'+turn); void p.offsetWidth; p.classList.add('timed'); timedPanel=p;
+    const end=Date.now()+TURN_MS; secsLeft=3; let lastS=3;
+    const tick=()=>{
+      const s=Math.max(0,Math.ceil((end-Date.now())/1000));
+      if(s!==lastS){ lastS=s; if(s>0) sfx.tick(s); }
+      secsLeft=s; p.classList.toggle('hurry',s<=1);
+      p.querySelector('.turnTag').textContent='Your turn · '+s;
+    };
+    tick(); tickInt=setInterval(tick,100);
+    turnTimeout=setTimeout(timeUp,TURN_MS);
+  }
+  function timeUp(){
+    if(over||isBot(turn)) return;
+    if(drag){ clearDrag(); drag=null; }
+    const p=$('panel'+turn); stopTimer();
+    p.classList.remove('timeup'); void p.offsetWidth; p.classList.add('timeup');
+    setTimeout(()=>p.classList.remove('timeup'),450);
+    skipped=turn;
+    sfx.timeup();
+    selected=null;
+    turn=turn==='A'?'B':'A';
+    render();
+    if(isBot(turn)) queueBot(); else startTimer();
   }
 
   function setPiece(i,p,anim,from){
@@ -296,11 +341,12 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
 
   function endTurn(){
+    stopTimer(); skipped=null;
     const line=LINES.find(l=>l.every(k=>board[k]===turn));
     if(line){ over=true; wins[turn]++; render(); win(line); return; }
     turn=turn==='A'?'B':'A';
     render();
-    if(isBot(turn)) queueBot();
+    if(isBot(turn)) queueBot(); else startTimer();
   }
 
   /* ---- computer player ---- */
@@ -391,7 +437,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     ['A','B'].forEach(k=>{
       const other=k==='A'?'B':'A';
       const bot=isBot(k), thinking=!over&&bot&&k===turn;
-      $('panel'+k).querySelector('.turnTag').textContent=over?'Winner':(bot?'Playing':'Your turn');
+      $('panel'+k).querySelector('.turnTag').textContent=over?'Winner':(bot?'Playing':'Your turn'+(k===turn&&secsLeft?' · '+secsLeft:''));
       $('sym'+k).textContent=sym[k];
       $('wins'+k).textContent=wins[k];
       $('panel'+k).classList.toggle('on',k===turn);
@@ -399,6 +445,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
       let m;
       if(over) m = k===turn ? (bot?'Computer wins this round':'You win! 🎉') : nm(other)+(nm(other)==='You'?' win':' wins')+' this round';
       else if(thinking) m = 'Thinking…';
+      else if(k!==turn && skipped===k) m = "Time's up! Turn skipped";
       else if(k!==turn) m = 'Wait for '+(isBot(other)?'the computer':nm(other));
       else if(placed[k]<3) m = 'Your turn · place '+sym[k]+' ('+(3-placed[k])+' left)';
       else if(selected===null) m = 'Drag or tap your '+sym[k]+' to move it';
@@ -486,7 +533,7 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
     level=b.dataset.lvl; sfx.click();
     document.querySelectorAll('.lvl').forEach(x=>{x.classList.toggle('on',x===b);x.setAttribute('aria-checked',x===b);});
   });
-  $('homeBtn').onclick=()=>{sfx.click();clearTimeout(botTimer);over=true;stopFx();show('start');};
+  $('homeBtn').onclick=()=>{sfx.click();clearTimeout(botTimer);stopTimer();over=true;stopFx();show('start');};
   $('againBtn').onclick=()=>{sfx.start();newRound();};
   $('resetBtn').onclick=()=>{sfx.click();wins={A:0,B:0};newRound();};
   $('muteBtn').onclick=()=>{ muted=!muted; try{localStorage.setItem('ttt-muted',muted?'1':'0');}catch(e){} setMuteIcon(); sfx.click(); };
