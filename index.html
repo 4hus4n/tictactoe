@@ -27,25 +27,61 @@ body{background:var(--bg);color:var(--fg);font-family:var(--body);overflow:hidde
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:12px;box-sizing:border-box}
 button{font-family:inherit}
 
-/* ---------- Start screen ---------- */
-.start{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;text-align:center;max-width:420px;margin:0 auto}
-.logo{display:grid;grid-template-columns:repeat(3,52px);gap:6px}
-.logo span{width:52px;height:52px;border-radius:10px;background:var(--surface);display:grid;place-items:center;font:800 2rem/1 var(--display);opacity:0;animation:drop .5s cubic-bezier(.3,1.6,.5,1) forwards}
-.logo .a{color:var(--a)} .logo .b{color:var(--b)}
-.start h1{font:800 2.2rem/1.05 var(--display);margin:0;letter-spacing:-.02em;text-wrap:balance}
-.start p{margin:0;color:var(--muted);line-height:1.5}
-.how{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:8px;text-align:left;width:100%}
-.how li{background:var(--surface);border-radius:12px;padding:10px 14px;display:flex;gap:12px;align-items:center;font-size:.92rem}
-.how b{font:800 1.1rem var(--display);width:22px;flex:none;color:var(--muted)}
-.who{display:flex;gap:10px;width:100%}
-.who div{flex:1;border-radius:12px;padding:10px;font-weight:600;color:#fff;text-align:center}
+/* ---------- Splash screen ---------- */
+.splash{position:fixed;inset:0;z-index:7;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px;cursor:pointer;background:var(--bg);
+  padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px));transition:opacity .5s,transform .5s}
+.splash.leaving{opacity:0;transform:scale(1.08);pointer-events:none}
+.floaty{position:absolute;font:800 var(--sz)/1 var(--display);opacity:.12;left:var(--x);top:110%;animation:floatUp var(--d) linear var(--dl) infinite;pointer-events:none}
+.floaty.a{color:var(--a)} .floaty.b{color:var(--b)}
+@keyframes floatUp{from{transform:translateY(0) rotate(0)}to{transform:translateY(-135vh) rotate(var(--r))}}
+.sTitle{position:relative;text-align:center;font-family:var(--display);font-weight:800;line-height:.95;margin:0;letter-spacing:-.02em}
+.sTitle .l1{display:block;font-size:clamp(1.1rem,5vw,1.8rem);color:var(--muted);letter-spacing:.3em;text-transform:uppercase;font-weight:500;margin-bottom:10px;opacity:0;animation:fadeUp .6s .2s forwards}
+.sTitle .l2{display:block;font-size:clamp(2.5rem,12.5vw,7rem)}
+.sTitle .wd{white-space:nowrap}
+.sTitle .ch{display:inline-block;opacity:0;animation:popIn .5s cubic-bezier(.3,1.7,.5,1) forwards,wave 2.4s ease-in-out infinite;animation-delay:var(--dl),calc(var(--dl) + 1.2s)}
+.sTitle .ch.a{color:var(--a)} .sTitle .ch.b{color:var(--b)}
+@keyframes popIn{from{opacity:0;transform:translateY(40px) scale(.4) rotate(-15deg)}to{opacity:1;transform:none}}
+@keyframes wave{0%,60%,100%{translate:0 0}30%{translate:0 -10px}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+.demo{--c:min(20vw,84px);position:relative;display:grid;grid-template-columns:repeat(3,var(--c));gap:6px;padding:6px;background:var(--line);border-radius:16px;opacity:0;animation:fadeUp .6s 1s forwards}
+.demo span{width:var(--c);height:var(--c);border-radius:10px;background:var(--surface);display:grid;place-items:center;font:800 calc(var(--c)*.62)/1 var(--display)}
+.demo span.a{color:var(--a)} .demo span.b{color:var(--b)}
+.demo span i{font-style:normal;animation:drop .4s cubic-bezier(.3,1.6,.5,1)}
+.demo svg{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.demo svg line{stroke:var(--a);stroke-width:8;stroke-linecap:round;stroke-dasharray:420;stroke-dashoffset:420;animation:draw .5s ease-out forwards}
+.tapGo{font:600 1.1rem var(--body);padding:14px 34px;border-radius:999px;border:0;background:var(--fg);color:var(--bg);cursor:pointer;opacity:0;animation:fadeUp .6s 1.5s forwards,breathe 1.6s 2.1s ease-in-out infinite}
+@keyframes breathe{50%{transform:scale(1.07);box-shadow:0 0 0 10px color-mix(in srgb,var(--fg) 12%,transparent)}}
+.credit{position:absolute;left:0;right:0;bottom:0;text-align:center;padding:0 16px calc(18px + env(safe-area-inset-bottom,0px));font-size:.9rem;color:var(--muted);opacity:0;animation:fadeUp .6s 2s forwards}
+.credit b{font-family:var(--display);font-weight:800;font-size:1.05rem;background:linear-gradient(90deg,var(--a),#ffd23f,var(--b),#b07cff,var(--a));background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shine 3s linear infinite}
+@keyframes shine{to{background-position:300% 0}}
+
+/* ---------- Menu screen ---------- */
+.start{height:100%;display:flex;flex-direction:column;align-items:stretch;justify-content:center;gap:14px;max-width:400px;margin:0 auto}
+.start > *{opacity:0;animation:fadeUp .45s cubic-bezier(.2,.8,.2,1) forwards}
+.start > *:nth-child(1){animation-delay:0s} .start > *:nth-child(2){animation-delay:.08s} .start > *:nth-child(3){animation-delay:.16s}
+.start > *:nth-child(4){animation-delay:.24s} .start > *:nth-child(5){animation-delay:.32s}
+.mHead{text-align:center;margin-bottom:10px}
+.mHead .mark{font:800 2.6rem/1 var(--display)} .mHead .mark .a{color:var(--a)} .mHead .mark .b{color:var(--b)}
+.mHead h2{font:800 1.4rem var(--display);margin:6px 0 0;letter-spacing:-.01em}
+.mode{display:flex;align-items:center;gap:16px;text-align:left;padding:16px 18px;border-radius:18px;border:0;color:#fff;cursor:pointer;transition:transform .15s}
+.mode:active{transform:scale(.97)}
+.mode.m2{background:var(--a)} .mode.mc{background:var(--b)}
+.mode .ic{flex:none;width:54px;height:54px;border-radius:14px;background:rgba(255,255,255,.2);display:grid;place-items:center;font:800 1.35rem/1 var(--display)}
+.mode.mc .ic{font-size:1rem;letter-spacing:.04em}
+.mode b{display:block;font:800 1.3rem var(--display)}
+.mode small{display:block;font-size:.88rem;opacity:.9;margin-top:2px}
+.lvlRow{display:flex;align-items:center;gap:10px}
+.lvlRow > span{font-size:.85rem;color:var(--muted);flex:none}
+.how{background:var(--surface);border-radius:14px;padding:12px 16px;font-size:.92rem;color:var(--muted)}
+.how summary{cursor:pointer;font-weight:600;color:var(--fg)}
+.how ol{margin:10px 0 2px;padding-left:20px;display:flex;flex-direction:column;gap:6px;line-height:1.4}
 .btn{font:600 1.05rem var(--body);padding:14px 24px;border-radius:14px;border:2px solid var(--line);background:var(--surface);color:var(--fg);cursor:pointer;transition:transform .15s}
 .btn:active{transform:scale(.96)}
 .btn.primary{background:var(--fg);color:var(--bg);border-color:var(--fg);width:100%;font-size:1.15rem}
 .modes{display:flex;flex-direction:column;gap:12px;width:100%}
 .cpuBox{display:flex;flex-direction:column;gap:8px;background:var(--surface);border-radius:16px;padding:8px}
 .cpuBtn{background:var(--b)!important;border-color:var(--b)!important;color:#fff!important}
-.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.levels{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1}
 .lvl{font:600 .9rem var(--body);padding:9px;border-radius:10px;border:2px solid var(--line);background:transparent;color:var(--muted);cursor:pointer;transition:all .2s}
 .lvl.on{border-color:var(--b);color:var(--b);background:var(--b-soft)}
 .lvl:focus-visible{outline:3px solid var(--b);outline-offset:2px}
@@ -146,34 +182,36 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
 </head>
 <body>
 
-<!-- Start screen -->
-<section class="start" id="start">
-  <div class="logo" aria-hidden="true">
-    <span class="a" style="animation-delay:.05s">X</span><span></span><span class="b" style="animation-delay:.25s">O</span>
-    <span></span><span class="a" style="animation-delay:.15s">X</span><span class="b" style="animation-delay:.35s">O</span>
-    <span class="b" style="animation-delay:.45s">O</span><span></span><span class="a" style="animation-delay:.55s">X</span>
-  </div>
-  <h1>Three-Piece Tic Tac Toe</h1>
-  <p>Two players, one phone. Sit face to face with the phone between you.</p>
-  <div class="who"><div style="background:var(--a)">Player A</div><div style="background:var(--b)">Player B</div></div>
-  <ul class="how">
-    <li><b>1</b>X or O is picked at random. X goes first.</li>
-    <li><b>2</b>Each player places only 3 pieces.</li>
-    <li><b>3</b>Then tap your piece and move it to an empty box.</li>
-    <li><b>4</b>You have 3 seconds per turn, or your turn is skipped.</li>
-    <li><b>5</b>Keep playing until someone gets three in a row.</li>
-  </ul>
-  <div class="modes">
-    <button class="btn primary" id="startBtn">2 Players</button>
-    <div class="cpuBox">
-      <button class="btn primary cpuBtn" id="cpuBtn">Play vs Computer</button>
-      <div class="levels" role="radiogroup" aria-label="Computer level">
-        <button class="lvl" data-lvl="easy" role="radio">Easy</button>
-        <button class="lvl on" data-lvl="medium" role="radio">Medium</button>
-        <button class="lvl" data-lvl="hard" role="radio">Hard</button>
-      </div>
+<!-- Splash screen -->
+<section class="splash" id="splash" aria-label="Tap to start">
+  <div id="floaties" aria-hidden="true"></div>
+  <h1 class="sTitle"><span class="l1">Three-Piece</span><span class="l2" id="sTitle2"></span></h1>
+  <div class="demo" id="demo" aria-hidden="true"></div>
+  <button class="tapGo" id="tapGo">Tap to start</button>
+  <div class="credit">crafted by <b>clickandcraft</b> in Milandhoo</div>
+</section>
+
+<!-- Menu screen -->
+<section class="start" id="start" hidden>
+  <div class="mHead"><div class="mark"><span class="a">X</span><span class="b">O</span></div><h2>Choose a mode</h2></div>
+  <button class="mode m2" id="startBtn"><span class="ic">XO</span><span><b>2 Players</b><small>Face to face on one phone</small></span></button>
+  <button class="mode mc" id="cpuBtn"><span class="ic">CPU</span><span><b>Vs Computer</b><small>You against the phone</small></span></button>
+  <div class="lvlRow"><span>Computer level</span>
+    <div class="levels" role="radiogroup" aria-label="Computer level">
+      <button class="lvl" data-lvl="easy" role="radio">Easy</button>
+      <button class="lvl on" data-lvl="medium" role="radio">Medium</button>
+      <button class="lvl" data-lvl="hard" role="radio">Hard</button>
     </div>
   </div>
+  <details class="how"><summary>How to play</summary>
+    <ol>
+      <li>X or O is picked at random. X goes first.</li>
+      <li>Each player places only 3 pieces.</li>
+      <li>Then drag or tap a piece to move it to an empty box.</li>
+      <li>You have 3 seconds per turn, or your turn is skipped.</li>
+      <li>First to get three in a row wins.</li>
+    </ol>
+  </details>
 </section>
 
 <!-- Game screen -->
@@ -251,6 +289,68 @@ canvas#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-in
   }
 
   function show(screen){ $('start').hidden=screen!=='start'; $('game').hidden=screen!=='game'; }
+
+  /* ---- splash screen ---- */
+  (function buildSplash(){
+    // title letters
+    const words=[['TIC','a'],['TAC',''],['TOE','b']]; let html='', n=0;
+    words.forEach(([w,c],wi)=>{
+      html+='<span class="wd">';
+      for(const ch of w){ html+=`<span class="ch ${c}" style="--dl:${(0.35+n*0.07).toFixed(2)}s">${ch}</span>`; n++; }
+      html+='</span>';
+      if(wi<2) html+=' ';
+    });
+    $('sTitle2').innerHTML=html;
+    // floating X / O in the background
+    let f='';
+    for(let i=0;i<16;i++){
+      const x=Math.random()*100, sz=24+Math.random()*70, d=9+Math.random()*10, dl=-Math.random()*d, r=(Math.random()<.5?-1:1)*(90+Math.random()*270);
+      f+=`<span class="floaty ${i%2?'b':'a'}" style="--x:${x}%;--sz:${sz}px;--d:${d}s;--dl:${dl}s;--r:${r}deg">${i%2?'O':'X'}</span>`;
+    }
+    $('floaties').innerHTML=f;
+    // demo board
+    $('demo').innerHTML=Array(9).fill('<span></span>').join('')+'<svg viewBox="0 0 300 300" preserveAspectRatio="none"></svg>';
+  })();
+  let demoTimer=null;
+  function runDemo(){
+    const sq=[...$('demo').querySelectorAll('span')], svg=$('demo').querySelector('svg');
+    const games=[
+      {moves:[4,0,2,8,6],line:[2,6]},
+      {moves:[0,4,1,8,2],line:[0,2]},
+      {moves:[2,4,5,0,8],line:[2,8]},
+      {moves:[6,4,7,2,8],line:[6,8]}
+    ];
+    let g=0;
+    const play=()=>{
+      const game=games[g++%games.length];
+      sq.forEach(s=>{s.innerHTML='';s.className='';}); svg.innerHTML='';
+      let step=0;
+      const next=()=>{
+        if(step<game.moves.length){
+          const idx=game.moves[step], p=step%2?'b':'a';
+          sq[idx].className=p; sq[idx].innerHTML='<i>'+(p==='a'?'X':'O')+'</i>';
+          step++; demoTimer=setTimeout(next,520);
+        } else {
+          const pt=k=>[(k%3)*100+50,Math.floor(k/3)*100+50];
+          let [x1,y1]=pt(game.line[0]),[x2,y2]=pt(game.line[1]);
+          const len=Math.hypot(x2-x1,y2-y1),ux=(x2-x1)/len,uy=(y2-y1)/len;
+          x1-=ux*30;y1-=uy*30;x2+=ux*30;y2+=uy*30;
+          svg.innerHTML=`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+          demoTimer=setTimeout(play,1600);
+        }
+      };
+      demoTimer=setTimeout(next,300);
+    };
+    demoTimer=setTimeout(play,1100);
+  }
+  runDemo();
+  function leaveSplash(){
+    const s=$('splash'); if(s.classList.contains('leaving')) return;
+    ac(); sfx.start();
+    s.classList.add('leaving'); show('start');
+    setTimeout(()=>{ s.hidden=true; clearTimeout(demoTimer); },500);
+  }
+  $('splash').addEventListener('click',leaveSplash);
 
   /* ---- mode: '2p' or 'cpu' (computer is Player B) ---- */
   let mode='2p', level='medium', botTimer=null;
